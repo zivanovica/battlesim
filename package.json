@@ -1,0 +1,19 @@
+{
+  "name": "battlesim",
+  "version": "1.0.0",
+  "description": "Simple, easy to extend nodejs based battlesimulator.",
+  "main": "simulator.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CoaPsyFactor/battlesim.git"
+  },
+  "author": "Aleksandar Zivanovic",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/CoaPsyFactor/battlesim/issues"
+  },
+  "homepage": "https://github.com/CoaPsyFactor/battlesim#readme"
+}
