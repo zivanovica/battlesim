@@ -40,8 +40,16 @@ const SetUpdateHandler = function () {
             }
 
             if (this.shouldUpdate() && this[propUpdateSpeed] < Date.now() - previousTime) {
+                if (UpdateType.Set === this.getUpdateType()) {
+                    console.log(`
+                        ${this[propName]} entity attribute update triggered.
+                        Value changed from ${this[propValue]} to ${this.getUpdateValue()}
+                    `);
+
+                    this.setValue(this.getUpdateValue());
+                }
                 // Update etc
-                console.log(`${this[propName]} entity attribute update triggered.`);
+
                 previousTime = Date.now();
             }
 
@@ -87,6 +95,10 @@ class EntityAttribute {
      * Starts update handler, and sets its unsubscribe callback
      */
     startUpdateHandler() {
+        if (UpdateType.None === this.getUpdateType()) {
+            return;
+        }
+
         this[propUpdateUnsubscribe] = this[propHandleUpdate]();
     }
 
@@ -99,6 +111,7 @@ class EntityAttribute {
         }
 
         this[propUpdateUnsubscribe]();
+        this[propUpdateUnsubscribe] = null;
     }
 
     /**

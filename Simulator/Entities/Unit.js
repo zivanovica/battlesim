@@ -11,21 +11,17 @@ const UnitDefaults = {
     Health: 100.0,
     MinHealth: 0.0,
     MaxHealth: 100.0,
-    RechargeSpeed: 100
+    RechargeSpeed: 2000.0
 };
-
-const propIsSpawned = Symbol();
 
 class Unit extends Entity {
     constructor({name, health = UnitDefaults.Health, rechargeSpeed = UnitDefaults.RechargeSpeed} = {}) {
         super({name});
 
-        this[propIsSpawned] = false;
-
         const isRechargingAttribute = new EntityAttribute({
             name: UnitAttributes.isRecharging,
-            value: 1,
-            updateValue: 0,
+            value: false,
+            updateValue: false,
             updateSpeed: rechargeSpeed,
             updateType: UpdateType.Set
         });
@@ -38,27 +34,8 @@ class Unit extends Entity {
         this.setAttribute(new EntityAttribute({name: UnitAttributes.Health, value: health}));
     }
 
-    /**
-     * Starts all attribute updates and flags unit as spawned
-     */
-    spawn() {
-        this[propIsSpawned] = true;
+    onHealthChange(callback) {
 
-        this.getAttributes().forEach((attribute) => {
-            attribute.reset();
-            attribute.startUpdateHandler();
-        });
-    }
-
-    /**
-     * Stops all attribute updates and flags unit as non-spawned
-     */
-    despawn() {
-        this[propIsSpawned] = false;
-
-        this.getAttributes().forEach((attribute) => {
-            attribute.stopUpdateHandler();
-        });
     }
 
     /**
@@ -89,6 +66,24 @@ class Unit extends Entity {
 
         isRechargingAttribute && isRechargingAttribute.setUpdateSpeed(rechargeSpeed);
     }
+
+    /**
+     * Set recharging flag to "true"
+     */
+    recharge() {
+        this.setAttributeValue(UnitAttributes.isRecharging, true);
+    }
+
+    /**
+     * @returns {boolean}
+     */
+    isRecharging() {
+        return this.getAttributeValue(UnitAttributes.isRecharging);
+    }
+
+    canAttack() {
+        return this.isSpawned() && false === this.isRecharging() && UnitDefaults.MinHealth < this.getHealth();
+    }
 }
 
-module.exports = {Unit, UnitDefaults};
+module.exports = {Unit, UnitDefaults, UnitAttributes};

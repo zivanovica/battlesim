@@ -6,7 +6,7 @@
 
 const {EntityAttribute, UpdateType} = require('./Simulator/Core/Entity/EntityAttribute');
 const {Entity} = require('./Simulator/Core/Entity/Entity');
-const {Unit} = require('./Simulator/Entities/Unit');
+const {Unit, UnitAttributes} = require('./Simulator/Entities/Unit');
 
 
 const attr = new EntityAttribute({
@@ -19,12 +19,27 @@ const attr2 = new EntityAttribute({
 attr.startUpdateHandler();
 attr2.startUpdateHandler();
 
-setTimeout(() => {attr.stopUpdateHandler();}, 5000);
+setTimeout(() => {
+    attr.stopUpdateHandler();
+}, 5000);
 
 const Soldier = {};
 
 new Entity({name: 'Unit', refObject: Soldier});
 
-var aa = new Unit({name: 'Test'});
+var aa = new Unit({name: 'Test', rechargeSpeed: 2000});
+
+// setInterval(() => {
+//     console.log('Recharging ' + (aa.isRecharging() ? 'Yes' : 'No'));
+// }, 100);
+
+setInterval(() => {
+    if (aa.isRecharging()) {
+        return;
+    }
+
+    aa.recharge();
+}, 5000);
+
 
 aa.spawn();

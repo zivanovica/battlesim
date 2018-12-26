@@ -1,12 +1,13 @@
 // Using "resolve" to determine absolute path of module, and ensure secure cross system loading (Windows, Linux, OSX...)
 const {resolve} = require('path');
 const {
-    EntityException, EntityExceptionCode: { InvalidName, InvalidAttributeType }
+    EntityException, EntityExceptionCode: {InvalidName, InvalidAttributeType}
 } = require(resolve('Simulator', 'Core', 'Exception', 'EntityException'));
 const {EntityAttribute} = require(resolve('Simulator', 'Core', 'Entity', 'EntityAttribute'));
 
 const propName = Symbol();
 const propAttributes = Symbol();
+const propIsSpawned = Symbol();
 
 class Entity {
     constructor({name} = {}) {
@@ -15,11 +16,46 @@ class Entity {
         }
 
         this[propName] = name;
-        /**
-         *
-         * @type {{EntityAttribute}}
-         */
+        this[propIsSpawned] = false;
         this[propAttributes] = {};
+    }
+
+    /**
+     * Starts all attribute updates and flags unit as spawned
+     */
+    spawn() {
+        if (this.isSpawned()) {
+            return;
+        }
+
+        this[propIsSpawned] = true;
+
+        this.getAttributes().forEach((attribute) => {
+            attribute.reset();
+            attribute.startUpdateHandler();
+        });
+    }
+
+    /**
+     * Stops all attribute updates and flags unit as non-spawned
+     */
+    despawn() {
+        if (false === this.isSpawned()) {
+            return;
+        }
+
+        this[propIsSpawned] = false;
+
+        this.getAttributes().forEach((attribute) => {
+            attribute.stopUpdateHandler();
+        });
+    }
+
+    /**
+     * @returns {boolean}
+     */
+    isSpawned() {
+        return this[propIsSpawned];
     }
 
     /**
