@@ -2,9 +2,10 @@
   "name": "battlesim",
   "version": "1.0.0",
   "description": "Simple, easy to extend nodejs based battlesimulator.",
-  "main": "simulator.js",
+  "main": "simulation.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node simulation.js"
   },
   "repository": {
     "type": "git",
