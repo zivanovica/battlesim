@@ -4,42 +4,15 @@
     Using "resolve" to determine absolute path of module, and ensure secure cross system loading (Windows, Linux, OSX...)
 */
 
-const {EntityAttribute, UpdateType} = require('./Simulator/Core/Entity/EntityAttribute');
-const {Entity} = require('./Simulator/Core/Entity/Entity');
-const {Unit, UnitAttributes} = require('./Simulator/Entities/Unit');
+const {Soldier} = require('./Simulator/Entities/Units/Soldier');
+const {Vehicle} = require('./Simulator/Entities/Units/Vehicle');
 
+const soldier = new Soldier({name: 'Coa', health: 100.0});
+const vehicle = new Vehicle({name: 'Car', operatorsCount: 2});
 
-const attr = new EntityAttribute({
-    name: 'health', value: 50.0, updateSpeed: 1000, updateType: UpdateType.Sum, updateValue: 1.9
-});
-const attr2 = new EntityAttribute({
-    name: 'armor', value: 50.0, updateSpeed: 1000, updateType: UpdateType.Sum, updateValue: 1.9
-});
-
-attr.startUpdateHandler();
-attr2.startUpdateHandler();
-
-setTimeout(() => {
-    attr.stopUpdateHandler();
-}, 5000);
-
-const Soldier = {};
-
-new Entity({name: 'Unit', refObject: Soldier});
-
-var aa = new Unit({name: 'Test', rechargeSpeed: 2000});
-
-// setInterval(() => {
-//     console.log('Recharging ' + (aa.isRecharging() ? 'Yes' : 'No'));
-// }, 100);
+soldier.spawn();
+vehicle.spawn();
 
 setInterval(() => {
-    if (aa.isRecharging()) {
-        return;
-    }
-
-    aa.recharge();
-}, 5000);
-
-
-aa.spawn();
+    console.log(vehicle.isDead(), vehicle.getAttackProbability());
+}, 1000);

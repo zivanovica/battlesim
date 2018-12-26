@@ -75,19 +75,20 @@ class Entity {
     }
 
     /**
+     * Creates and adds new attribute, if attribute with same name already exist it will be overwritten.
      *
-     * @param {EntityAttribute} attribute
+     * @param {{name: string, value: *, updateValue?: *, updateSpeed?: number, updateType?: number}} options
      */
-    setAttribute(attribute) {
-        if (false === attribute instanceof EntityAttribute) {
-            throw new EntityException(InvalidAttributeType, attribute);
-        }
-
+    setAttribute(options) {
+        // if (false === attribute instanceof EntityAttribute) {
+        //     throw new EntityException(InvalidAttributeType, attribute);
         // if (this[propAttributes][attribute.getName()]) {
         //     this[propAttributes][attribute.getName()].stopUpdateHandler();
         // }
+        //
+        // }
 
-        this[propAttributes][attribute.getName()] = attribute;
+        this[propAttributes][options.name] = new EntityAttribute({...options});
     }
 
     /**

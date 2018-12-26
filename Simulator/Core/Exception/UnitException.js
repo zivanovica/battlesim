@@ -1,11 +1,17 @@
 const BaseException = require('./BaseException');
 
-class UnitException extends BaseException {
-    getErrorMessages() {
-        return;
-    }
+const UnitExceptionCode = {
+    InvalidAttackCalculus: 30001,
+    InvalidDamageCalculus: 30002,
 };
 
-module.exports = {
-    UnitException,
-};
+class UnitException extends BaseException {
+    getErrorMessages() {
+        return {
+            [UnitExceptionCode.InvalidAttackCalculus]: 'Provided attack probability calculus function is invalid',
+            [UnitExceptionCode.InvalidDamageCalculus]: 'Provided damage calculus function is invalid',
+        };
+    }
+}
+
+module.exports = {UnitException, UnitExceptionCode};
