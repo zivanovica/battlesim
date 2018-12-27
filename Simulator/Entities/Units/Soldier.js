@@ -1,5 +1,4 @@
 const {resolve} = require('path');
-const {EntityAttribute} = require(resolve('Simulator', 'Core', 'Entity', 'EntityAttribute'));
 const {Unit} = require(resolve('Simulator', 'Entities', 'Unit'));
 const {MathEx} = require(resolve('Simulator', 'Utils', 'MathEx'));
 
@@ -14,14 +13,16 @@ const SoldierAttribute = {
 
 class Soldier extends Unit {
 
-    constructor({name, health} = {}) {
+    constructor({name, health, experience = SoldierDefaults.MinExperience} = {}) {
         super({name, health});
 
-        this.setAttribute({name: SoldierAttribute.Experience, value: 0});
+        this.setExperience(experience);
     }
 
     /**
      * Calculate soldier attack probability based on health and experience
+     *
+     * Note: If unit is dead, then 0 (zero) is returned
      *
      * @returns {number}
      */
@@ -35,7 +36,7 @@ class Soldier extends Unit {
      * @returns {number}
      */
     calculateDamage() {
-        return 0.05 + this.getExperience() / 100;
+        return 0.05 + (this.getExperience() / 100);
     }
 
     /**
@@ -44,6 +45,7 @@ class Soldier extends Unit {
      * @returns {number}
      */
     getExperience() {
+        // console.log('ovde', this.getAttributeValue(SoldierAttribute.Experience));
         return this.getAttributeValue(SoldierAttribute.Experience);
     }
 
@@ -53,9 +55,13 @@ class Soldier extends Unit {
      * @param {number} experience
      */
     setExperience(experience) {
-        if (SoldierDefaults.MinExperience > experience || SoldierDefaults.MaxExperience < experience) {
-            return;
+        if (SoldierDefaults.MinExperience > experience) {
+            experience = SoldierDefaults.MinExperience;
+        } else if (SoldierDefaults.MaxExperience < experience) {
+            experience = SoldierDefaults.MaxExperience;
         }
+
+        console.log('setting', experience, this.getName());
 
         this.setAttributeValue(SoldierAttribute.Experience, experience);
     }

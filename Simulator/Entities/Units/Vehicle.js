@@ -1,8 +1,7 @@
 const {resolve} = require('path');
-const {EntityAttribute} = require(resolve('Simulator', 'Core', 'Entity', 'EntityAttribute'));
 const {Unit} = require(resolve('Simulator', 'Entities', 'Unit'));
 const {Soldier} = require(resolve('Simulator', 'Entities', 'Units', 'Soldier'));
-const {MathEx} = require(resolve('Simulator', 'Utils', 'MathEx'));
+const {MathEx: {average, random}} = require(resolve('Simulator', 'Utils', 'MathEx'));
 
 const VehicleDefaults = {
     MinOperatorsCount: 1,
@@ -20,7 +19,7 @@ const VehicleAttribute = {
  * Generate array containing "requiredOperatorsCount" number of Soldier units
  */
 const LoadOperators = function () {
-    return new Array(this.getAttributeValue(VehicleAttribute.OperatorsCount))
+    return new Array(this.getOperatorsCount())
         .fill(Soldier)
         .map((OperatorUnit, index) => {
             return new OperatorUnit({name: `${this.getName()} ${index} Soldier`})
@@ -32,10 +31,12 @@ const LoadOperators = function () {
  * Vehicle unit also ensures that it contains
  */
 class Vehicle extends Unit {
-    constructor({name, rechargeSpeed, operatorsCount}) {
+    constructor({name, rechargeSpeed = null, operatorsCount = null}) {
         super({name, rechargeSpeed});
 
-        this.setAttribute({name: VehicleAttribute.OperatorsCount, value: operatorsCount});
+        rechargeSpeed = null
+
+        this.setOperatorsCount(operatorsCount);
         this.setAttribute({name: VehicleAttribute.Operators, value: LoadOperators.call(this)});
     }
 
@@ -62,9 +63,11 @@ class Vehicle extends Unit {
      *
      * @param {number} count
      */
-    setRequiredOperatorsCount(count) {
-        if (VehicleDefaults.MinOperatorsCount > count || VehicleDefaults.MaxOperatorsCount < count) {
-            return;
+    setOperatorsCount(count) {
+        if (VehicleDefaults.MinOperatorsCount > count) {
+            count = VehicleDefaults.MinOperatorsCount;
+        } else if (VehicleDefaults.MaxOperatorsCount < count) {
+            count = VehicleDefaults.MaxOperatorsCount;
         }
 
         this.setAttributeValue(VehicleAttribute.OperatorsCount, count);
@@ -75,7 +78,7 @@ class Vehicle extends Unit {
      *
      * @returns {number}
      */
-    getRequiredOperatorsCount() {
+    getOperatorsCount() {
         return this.getAttributeValue(VehicleAttribute.OperatorsCount);
     }
 
@@ -103,7 +106,7 @@ class Vehicle extends Unit {
      * @returns {number}
      */
     getOperatorsAverageAttackProbability() {
-        return MathEx.average(this.getAliveOperators().map((operator) => (operator.getAttackProbability())));
+        return average(this.getOperators().map((operator) => (operator.getAttackProbability())));
     }
 
     /**
@@ -124,6 +127,52 @@ class Vehicle extends Unit {
      */
     isDead() {
         return super.isDead() || 0 === this.getAliveOperators().length || false;
+    }
+
+    /**
+     * Retrieve vehicle unit recharge state based on recharge state of operators
+     *
+     * @returns {boolean}
+     */
+    isRecharging() {
+        return 0 === this.getOperators().reduce((rechargeCount = 0, unit) => {
+            return rechargeCount + (unit.isRecharging() && 1 || 0);
+        });
+    }
+
+    /**
+     * Receive damage and apply it to vehicle and its operators
+     *
+     * @param {number} damage
+     */
+    receiveDamage(damage) {
+        const operators = this.getAliveOperators();
+
+        // In case that there are no operators alive, give all damage to vehicle itself
+        if (0 === operators.length) {
+            super.receiveDamage(damage);
+
+            return;
+        }
+
+        const selfDamage = damage * 0.3;
+        super.receiveDamage(selfDamage);
+
+        const operatorDamage = (damage - selfDamage) * 0.5;
+
+        operators.splice(random({min: 0, max: operators.length - 1}), 1).shift().receiveDamage(operatorDamage);
+
+        const otherDamage = (damage - selfDamage - operatorDamage);
+
+        if (operators.length) {
+            const otherDamagePerUnit = otherDamage / operators.length;
+
+            operators.forEach((operator) => {
+                operator.receiveDamage(otherDamagePerUnit);
+            });
+        } else {
+            super.receiveDamage(otherDamage);
+        }
     }
 }
 

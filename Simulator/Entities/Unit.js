@@ -1,10 +1,9 @@
 const {resolve} = require('path');
 const {Entity} = require(resolve('Simulator', 'Core', 'Entity', 'Entity'));
-const {EntityAttribute, UpdateType} = require(resolve('Simulator', 'Core', 'Entity', 'EntityAttribute'));
+const {UpdateType} = require(resolve('Simulator', 'Core', 'Entity', 'EntityAttribute'));
 const {
     UnitException, UnitExceptionCode: {InvalidAttackCalculus, InvalidDamageCalculus}
-} = require(resolve('Simulator', 'Core', 'Exception', 'UnitException'));
-const {MathEx} = require(resolve('Simulator', 'Utils', 'MathEx'));
+} = require(resolve('Simulator', 'Entities', 'Exceptions', 'UnitException'));
 
 const UnitAttribute = {
     Health: 'health',
@@ -31,11 +30,7 @@ const propMaxRechargeDuration = Symbol();
  * @returns {number}
  */
 const ExecuteCalculus = function (calculus) {
-    if (typeof this[calculus] !== 'function') {
-        return 0;
-    }
-
-    return this[calculus]();
+    return typeof this[calculus] === 'function' && this[calculus]() || 0;
 };
 
 class Unit extends Entity {
@@ -55,7 +50,6 @@ class Unit extends Entity {
         const isRechargingAttribute = this.getAttribute(UnitAttribute.isRecharging);
 
         isRechargingAttribute.shouldUpdate = () => {
-
             return isRechargingAttribute.getValue();
         };
 
@@ -91,9 +85,10 @@ class Unit extends Entity {
      * @param {number} rechargeDuration
      */
     setRechargeDuration(rechargeDuration) {
-
         if (UnitDefaults.MinRechargeDuration > rechargeDuration) {
             rechargeDuration = UnitDefaults.MinRechargeDuration;
+        } else if (UnitDefaults.MaxRechargeDuration < rechargeDuration) {
+            rechargeDuration = UnitDefaults.MaxRechargeDuration;
         }
 
         const isRechargingAttribute = this.getAttribute(UnitAttribute.isRecharging);
@@ -132,7 +127,7 @@ class Unit extends Entity {
      * @returns {boolean}
      */
     isRecharging() {
-        return this.getAttributeValue(UnitAttribute.isRecharging);
+        return this.isDead() ? false : this.getAttributeValue(UnitAttribute.isRecharging);
     }
 
     /**
@@ -154,7 +149,7 @@ class Unit extends Entity {
      * @returns {number}
      */
     getAttackProbability() {
-        return ExecuteCalculus.call(this, propAttackProbabilityCalculus);
+        return this.isDead() ? 0 : ExecuteCalculus.call(this, propAttackProbabilityCalculus);
     }
 
     /**
@@ -176,7 +171,7 @@ class Unit extends Entity {
      * @returns {number}
      */
     getDamage() {
-        return ExecuteCalculus.call(this, propDamageCalculus);
+        return this.isDead() ? 0 : ExecuteCalculus.call(this, propDamageCalculus);
     }
 
     /**
@@ -184,8 +179,8 @@ class Unit extends Entity {
      *
      * @param {number} damage
      */
-    takeDamage(damage) {
-        this.setHealth(this.getHealth() - damage);
+    receiveDamage(damage) {
+        false === this.isDead() && this.setHealth(this.getHealth() - damage);
     }
 
     /**

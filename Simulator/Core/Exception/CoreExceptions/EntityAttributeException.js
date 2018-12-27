@@ -1,12 +1,14 @@
-const BaseException = require('./BaseException');
+const BaseException = require('../BaseException');
 
 const EntityAttributeExceptionCode = {
-    InvalidName: 10000,
-    InvalidValue: 10001,
-    InvalidRechargeSpeed: 10002,
-    InvalidRechargeType: 10003,
-    InvalidRechargeValue: 10004,
-    InvalidAttributeValue: 10005,
+    InvalidName: 0,
+    InvalidValue: 1,
+    InvalidRechargeSpeed: 2,
+    InvalidRechargeType: 4,
+    InvalidRechargeValue: 8,
+    InvalidAttributeValue: 16,
+    InvalidStartHandler: 32,
+    InvalidStopHandler: 64,
 };
 
 class EntityAttributeException extends BaseException {
@@ -18,6 +20,8 @@ class EntityAttributeException extends BaseException {
             [EntityAttributeExceptionCode.InvalidRechargeType]: 'Error with attribute recharge type',
             [EntityAttributeExceptionCode.InvalidRechargeValue]: 'Error with attribute recharge value',
             [EntityAttributeExceptionCode.InvalidAttributeValue]: 'Error with attribute value',
+            [EntityAttributeExceptionCode.InvalidStartHandler]: 'Error with attribute start handler',
+            [EntityAttributeExceptionCode.InvalidStopHandler]: 'Error with attribute stop handler',
         };
     }
 }

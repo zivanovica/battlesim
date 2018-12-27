@@ -21,7 +21,7 @@ class MathEx {
             return 0;
         }
 
-        return Math.pow(values.reduce((total, current) => ((total || 1) * current)), 1.0 / values.length);
+        return Math.pow(values.reduce((total = 1.0, current) => (total * current)), 1.0 / values.length);
     }
 }
 

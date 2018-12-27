@@ -2,9 +2,10 @@
 const {resolve} = require('path');
 const {
     EntityAttributeException, EntityAttributeExceptionCode: {
-        InvalidName, InvalidRechargeSpeed, InvalidAttributeValue, InvalidRechargeType, InvalidRechargeValue
+        InvalidName, InvalidRechargeSpeed, InvalidAttributeValue, InvalidRechargeType, InvalidRechargeValue,
+        InvalidStartHandler, InvalidStopHandler
     }
-} = require(resolve('Simulator', 'Core', 'Exception', 'EntityAttributeException'));
+} = require(resolve('Simulator', 'Core', 'Exception', 'CoreExceptions', 'EntityAttributeException'));
 const UpdateType = {
     None: 0, // No recharge
     Sum: 1, // Sum current value with "rechargeValue"
@@ -27,6 +28,8 @@ const propUpdateSpeed = Symbol();
 const propUpdateType = Symbol();
 const propUpdateUnsubscribe = Symbol();
 const propHandleUpdate = Symbol();
+const propStartHandler = Symbol();
+const propStopHandler = Symbol();
 
 // Defining this as anonymous function as we want to make it "private" and prevent call from outside object scope
 const SetUpdateHandler = function () {
@@ -100,6 +103,8 @@ class EntityAttribute {
         }
 
         this[propUpdateUnsubscribe] = this[propHandleUpdate]();
+
+        this[propStartHandler] && this[propStartHandler];
     }
 
     /**
@@ -112,6 +117,36 @@ class EntityAttribute {
 
         this[propUpdateUnsubscribe]();
         this[propUpdateUnsubscribe] = null;
+
+        this[propStopHandler] && this[propStopHandler]();
+    }
+
+    /**
+     * Sets callback function that is triggered when attribute update is stopped
+     *
+     * Note: Using strictly "null" will remove handler function
+     *
+     * @param {function|null} callback
+     */
+    registerStartHandler(callback) {
+        if (null !== callback && typeof callback !== 'function') {
+            throw new EntityAttributeException(InvalidStartHandler, `Must be function, got ${typeof callback}`);
+        }
+
+        this[propStartHandler] = callback;
+    }
+
+    /**
+     * Sets callback function that is triggered when attribute update is started
+     *
+     * Note: Using strictly "null" will remove handler function
+     *
+     * @param {function|null} callback
+     */
+    registerStopHandler(callback) {
+        if (null !== callback && typeof callback !== 'function') {
+            throw new EntityAttributeException(InvalidStopHandler, `Must be function, got ${typeof callback}`);
+        }
     }
 
     /**

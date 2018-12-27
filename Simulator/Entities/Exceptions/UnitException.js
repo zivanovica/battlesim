@@ -1,8 +1,8 @@
-const BaseException = require('./BaseException');
+const BaseException = require('../../Core/Exception/BaseException');
 
 const UnitExceptionCode = {
-    InvalidAttackCalculus: 30001,
-    InvalidDamageCalculus: 30002,
+    InvalidAttackCalculus: 0,
+    InvalidDamageCalculus: 1,
 };
 
 class UnitException extends BaseException {
