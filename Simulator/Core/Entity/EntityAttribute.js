@@ -28,8 +28,9 @@ const propUpdateSpeed = Symbol();
 const propUpdateType = Symbol();
 const propUpdateUnsubscribe = Symbol();
 const propHandleUpdate = Symbol();
-const propStartHandler = Symbol();
-const propStopHandler = Symbol();
+const propStartHandlers = Symbol();
+const propStopHandlers = Symbol();
+const propChangeHandlers = Symbol();
 
 // Defining this as anonymous function as we want to make it "private" and prevent call from outside object scope
 const SetUpdateHandler = function () {
@@ -44,11 +45,6 @@ const SetUpdateHandler = function () {
 
             if (this.shouldUpdate() && this[propUpdateSpeed] < Date.now() - previousTime) {
                 if (UpdateType.Set === this.getUpdateType()) {
-                    console.log(`
-                        ${this[propName]} entity attribute update triggered.
-                        Value changed from ${this[propValue]} to ${this.getUpdateValue()}
-                    `);
-
                     this.setValue(this.getUpdateValue());
                 }
                 // Update etc
@@ -63,6 +59,20 @@ const SetUpdateHandler = function () {
             preventUpdate = true;
         };
     };
+};
+
+/**
+ * Executes all registered update start handlers
+ */
+const TriggerStartHandlers = function () {
+    this[propStartHandlers].forEach((handler) => (handler()));
+};
+
+/**
+ * Executes all registered update stop handlers
+ */
+const TriggerStopHandlers = function () {
+    this[propStopHandlers].forEach((handler) => (handler()));
 };
 
 /**
@@ -92,6 +102,10 @@ class EntityAttribute {
         this.setUpdateValue(updateValue);
 
         SetUpdateHandler.call(this);
+
+        this[propChangeHandlers] = [];
+        this[propStartHandlers] = [];
+        this[propStopHandlers] = [];
     }
 
     /**
@@ -104,7 +118,7 @@ class EntityAttribute {
 
         this[propUpdateUnsubscribe] = this[propHandleUpdate]();
 
-        this[propStartHandler] && this[propStartHandler];
+        TriggerStartHandlers.call(this);
     }
 
     /**
@@ -118,35 +132,51 @@ class EntityAttribute {
         this[propUpdateUnsubscribe]();
         this[propUpdateUnsubscribe] = null;
 
-        this[propStopHandler] && this[propStopHandler]();
+        TriggerStopHandlers.call(this);
+    }
+
+    /**
+     * Add callback function that is triggered when attribute update is started
+     **
+     * @param {function} callback
+     */
+    addStartHandler(callback) {
+        if (typeof callback !== 'function') {
+            throw new EntityAttributeException(InvalidStartHandler, `Must be function, got ${typeof callback}`);
+        }
+
+        this[propStartHandlers].push(callback);
+    }
+
+    /**
+     * Remove start handler from list
+     *
+     * @param {function} callback
+     */
+    removeStartHandler(callback) {
+        this[propStartHandlers] = this[propStartHandlers].filter((handler) => (handler !== callback));
     }
 
     /**
      * Sets callback function that is triggered when attribute update is stopped
      *
-     * Note: Using strictly "null" will remove handler function
-     *
-     * @param {function|null} callback
+     * @param {function} callback
      */
-    registerStartHandler(callback) {
-        if (null !== callback && typeof callback !== 'function') {
-            throw new EntityAttributeException(InvalidStartHandler, `Must be function, got ${typeof callback}`);
+    addStopHandler(callback) {
+        if (typeof callback !== 'function') {
+            throw new EntityAttributeException(InvalidStopHandler, `Must be function, got ${typeof callback}`);
         }
 
-        this[propStartHandler] = callback;
+        this[propStopHandlers].push(callback);
     }
 
     /**
-     * Sets callback function that is triggered when attribute update is started
+     * Remove stop handler from list
      *
-     * Note: Using strictly "null" will remove handler function
-     *
-     * @param {function|null} callback
+     * @param {function} callback
      */
-    registerStopHandler(callback) {
-        if (null !== callback && typeof callback !== 'function') {
-            throw new EntityAttributeException(InvalidStopHandler, `Must be function, got ${typeof callback}`);
-        }
+    removeStopHandler(callback) {
+        this[propStopHandlers] = this[propStopHandlers].filter((handler) => (handler !== callback));
     }
 
     /**

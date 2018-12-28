@@ -13,8 +13,8 @@ const SoldierAttribute = {
 
 class Soldier extends Unit {
 
-    constructor({name, health, experience = SoldierDefaults.MinExperience} = {}) {
-        super({name, health});
+    constructor({name, health, rechargeDuration, experience = SoldierDefaults.MinExperience} = {}) {
+        super({name, health, rechargeDuration});
 
         this.setExperience(experience);
     }
@@ -45,7 +45,6 @@ class Soldier extends Unit {
      * @returns {number}
      */
     getExperience() {
-        // console.log('ovde', this.getAttributeValue(SoldierAttribute.Experience));
         return this.getAttributeValue(SoldierAttribute.Experience);
     }
 
@@ -61,9 +60,16 @@ class Soldier extends Unit {
             experience = SoldierDefaults.MaxExperience;
         }
 
-        console.log('setting', experience, this.getName());
-
         this.setAttributeValue(SoldierAttribute.Experience, experience);
+    }
+
+    /**
+     * Increases Soldier experience for provided amount
+     *
+     * @param {number} amount
+     */
+    increaseExperience(amount) {
+        this.setExperience(this.getExperience() + amount);
     }
 }
 

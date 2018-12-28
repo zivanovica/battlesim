@@ -8,8 +8,22 @@ const {EntityAttribute} = require(resolve('Simulator', 'Core', 'Entity', 'Entity
 const propName = Symbol();
 const propAttributes = Symbol();
 const propIsSpawned = Symbol();
-const propSpawnHandler = Symbol();
-const propDespawnHandler = Symbol();
+const propSpawnHandlers = Symbol();
+const propDespawnHandlers = Symbol();
+
+/**
+ * Execute all registered spawn handlers
+ */
+const TriggerSpawnHandlers = function () {
+    this[propSpawnHandlers].forEach((handler) => (handler()));
+};
+
+/**
+ * Execute all registered despawn handlers
+ */
+const TriggerDespawnHandlers = function () {
+    this[propDespawnHandlers].forEach((handler) => (handler()));
+};
 
 class Entity {
     constructor({name, onSpawn = null, onDespawn = null} = {}) {
@@ -21,36 +35,55 @@ class Entity {
         this[propIsSpawned] = false;
         this[propAttributes] = {};
 
-        this.registerSpawnHandler(onSpawn);
-        this.registerDespawnHandler(onDespawn);
+        this[propSpawnHandlers] = [];
+        onSpawn && this.addSpawnHandler(onSpawn);
+
+        this[propDespawnHandlers] = [];
+        onDespawn && this.addDespawnHandler(onDespawn);
     }
 
     /**
      * Register callback function that is triggered when entity spawns
      *
-     * Note: To remove spawn handler pass "null" as callback argument
      * @param {function|null} callback
      */
-    registerSpawnHandler(callback) {
-        if (null !== callback && typeof callback !== 'function') {
+    addSpawnHandler(callback) {
+        if (typeof callback !== 'function') {
             throw new EntityException(InvalidSpawnHandler, `Expect function got ${typeof callback}`);
         }
 
-        this[propSpawnHandler] = callback;
+        this[propSpawnHandlers].push(callback);
+    }
+
+    /**
+     * Remove registered spawn handler
+     *
+     * @param {function} callback
+     */
+    removeSpawnHandler(callback) {
+        this[propSpawnHandlers] = this[propSpawnHandlers].filter((handler) => (handler !== callback));
     }
 
     /**
      * Register callback function that is triggered when entity despawns
      *
-     * Note: To remove spawn handler pass "null" as callback argument
      * @param {function|null} callback
      */
-    registerDespawnHandler(callback) {
-        if (null !== callback && typeof callback !== 'function') {
+    addDespawnHandler(callback) {
+        if (typeof callback !== 'function') {
             throw new EntityException(InvalidDespawnHandler, `Expect function got ${typeof callback}`);
         }
 
-        this[propDespawnHandler] = null;
+        this[propDespawnHandlers].push(callback);
+    }
+
+    /**
+     * Remove registered despawn handler
+     *
+     * @param {function} callback
+     */
+    removeSpawnHandler(callback) {
+        this[propDespawnHandlers] = this[propDespawnHandlers].filter((handler) => (handler !== callback));
     }
 
     /**
@@ -68,7 +101,7 @@ class Entity {
             attribute.startUpdateHandler();
         });
 
-        this[propSpawnHandler] && this[propSpawnHandler]();
+        TriggerSpawnHandlers.call(this);
     }
 
     /**
@@ -87,7 +120,7 @@ class Entity {
             attribute.reset();
         });
 
-        this[propDespawnHandler] && this[propSpawnHandler]();
+        TriggerDespawnHandlers.call(this);
     }
 
     /**

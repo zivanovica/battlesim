@@ -2,8 +2,9 @@ const {resolve} = require('path');
 const {Entity} = require(resolve('Simulator', 'Core', 'Entity', 'Entity'));
 const {UpdateType} = require(resolve('Simulator', 'Core', 'Entity', 'EntityAttribute'));
 const {
-    UnitException, UnitExceptionCode: {InvalidAttackCalculus, InvalidDamageCalculus}
+    UnitException, UnitExceptionCode: {InvalidAttackCalculus, InvalidDamageCalculus, InvalidOnDeathHandler}
 } = require(resolve('Simulator', 'Entities', 'Exceptions', 'UnitException'));
+const {MathEx: {random}} = require(resolve('Simulator', 'Utils', 'MathEx'));
 
 const UnitAttribute = {
     Health: 'health',
@@ -23,6 +24,7 @@ const propAttackProbabilityCalculus = Symbol();
 const propDamageCalculus = Symbol();
 const propMinRechargeDuration = Symbol();
 const propMaxRechargeDuration = Symbol();
+const propOnDeathHandlers = Symbol();
 
 /**
  *
@@ -35,7 +37,7 @@ const ExecuteCalculus = function (calculus) {
 
 class Unit extends Entity {
     constructor(
-        {name, health = UnitDefaults.Health, rechargeDuration = UnitDefaults.RechargeDuration, minRechargeSpeed: minRechargeDuration = UnitDefaults.MinRechargeDuration, maxRechargeSpeed: maxRechargeDuration = UnitDefaults.MaxRechargeDuration} = {}
+        {name, health = UnitDefaults.Health, rechargeDuration, minRechargeSpeed: minRechargeDuration = UnitDefaults.MinRechargeDuration, maxRechargeSpeed: maxRechargeDuration = UnitDefaults.MaxRechargeDuration} = {}
     ) {
         super({name});
 
@@ -43,8 +45,8 @@ class Unit extends Entity {
         this[propMaxRechargeDuration] = maxRechargeDuration;
 
         this.setAttribute({
-            name: UnitAttribute.isRecharging, value: false, updateValue: false,
-            updateSpeed: rechargeDuration, updateType: UpdateType.Set
+            name: UnitAttribute.isRecharging, value: false, updateValue: false, updateType: UpdateType.Set,
+            updateSpeed: rechargeDuration || random({min: minRechargeDuration, max: maxRechargeDuration}),
         });
 
         const isRechargingAttribute = this.getAttribute(UnitAttribute.isRecharging);
@@ -57,6 +59,8 @@ class Unit extends Entity {
 
         this.setAttackProbabilityCalculus(this.calculateAttackProbability);
         this.setDamageCalculus(this.calculateDamage);
+
+        this[propOnDeathHandlers] = [];
     }
 
     /**
@@ -83,11 +87,12 @@ class Unit extends Entity {
      * Sets unit recharge speed
      *
      * @param {number} rechargeDuration
+     * @param {{minDuration?: number, maxDuration?: number}}
      */
-    setRechargeDuration(rechargeDuration) {
-        if (UnitDefaults.MinRechargeDuration > rechargeDuration) {
+    setRechargeDuration(rechargeDuration, {minDuration = UnitDefaults.MinRechargeDuration, maxDuration = UnitDefaults.MaxRechargeDuration} = {}) {
+        if (minDuration > rechargeDuration) {
             rechargeDuration = UnitDefaults.MinRechargeDuration;
-        } else if (UnitDefaults.MaxRechargeDuration < rechargeDuration) {
+        } else if (maxDuration < rechargeDuration) {
             rechargeDuration = UnitDefaults.MaxRechargeDuration;
         }
 
@@ -110,17 +115,37 @@ class Unit extends Entity {
     }
 
     /**
-     * Set recharging flag to "true"
-     */
-    recharge() {
-        this.setAttributeValue(UnitAttribute.isRecharging, true);
-    }
-
-    /**
      * @returns {boolean}
      */
     isDead() {
         return UnitDefaults.MinHealth >= this.getHealth();
+    }
+
+    /**
+     * Set callback function that will be triggered when
+     *
+     * @param {function} callback
+     */
+    addOnDeathHandler(callback) {
+        if (typeof callback !== 'function') {
+            throw new UnitException(InvalidOnDeathHandler, `expected function got ${typeof callback}`);
+        }
+
+        this[propOnDeathHandlers].push(callback);
+    }
+
+    /**
+     * @param {function} callback
+     */
+    removeOnDeathHanlder(callback) {
+        this[propOnDeathHandlers] = this[propOnDeathHandlers].filter((handler) => (handler !== callback));
+    }
+
+    /**
+     * Set recharging flag to "true"
+     */
+    recharge() {
+        this.setAttributeValue(UnitAttribute.isRecharging, true);
     }
 
     /**

@@ -13,7 +13,7 @@ class BaseException extends Error {
         const messages = this.getErrorMessages();
         const message = messages && messages[code] || 'Unknown error';
 
-        this.message = `${message}${additionalMessage && ` - ${additionalMessage}` || ''}`;
+        this.message = `[${code}]: ${message}${additionalMessage && ` - ${additionalMessage}` || ''}`;
     }
 
     /**

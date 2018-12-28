@@ -6,8 +6,8 @@ const {MathEx: {average, random}} = require(resolve('Simulator', 'Utils', 'MathE
 const VehicleDefaults = {
     MinOperatorsCount: 1,
     MaxOperatorsCount: 3,
-    MinRechargeSpeed: 1000,
-    MaxRechargeSpeed: 2000
+    MinRechargeDuration: 1000,
+    MaxRechargeDuration: 2000
 };
 
 const VehicleAttribute = {
@@ -16,14 +16,12 @@ const VehicleAttribute = {
 };
 
 /**
- * Generate array containing "requiredOperatorsCount" number of Soldier units
+ * Generate array containing "operatorsCount" number of Soldier units
  */
-const LoadOperators = function () {
-    return new Array(this.getOperatorsCount())
-        .fill(Soldier)
-        .map((OperatorUnit, index) => {
-            return new OperatorUnit({name: `${this.getName()} ${index} Soldier`})
-        });
+const CreateOperators = function () {
+    return (
+        new Array(this.getOperatorsCount()).fill(Soldier).map((Unit, index) => (new Unit({name: `Operator #${index}`})))
+    );
 };
 
 /**
@@ -31,13 +29,12 @@ const LoadOperators = function () {
  * Vehicle unit also ensures that it contains
  */
 class Vehicle extends Unit {
-    constructor({name, rechargeSpeed = null, operatorsCount = null}) {
-        super({name, rechargeSpeed});
+    constructor({name, rechargeDuration = VehicleDefaults.MaxRechargeDuration, operatorsCount = -1}) {
+        super({name});
 
-        rechargeSpeed = null
-
+        this.setRechargeDuration(rechargeDuration);
         this.setOperatorsCount(operatorsCount);
-        this.setAttribute({name: VehicleAttribute.Operators, value: LoadOperators.call(this)});
+        this.setAttribute({name: VehicleAttribute.Operators, value: CreateOperators.call(this)});
     }
 
     /**
@@ -64,10 +61,10 @@ class Vehicle extends Unit {
      * @param {number} count
      */
     setOperatorsCount(count) {
-        if (VehicleDefaults.MinOperatorsCount > count) {
-            count = VehicleDefaults.MinOperatorsCount;
-        } else if (VehicleDefaults.MaxOperatorsCount < count) {
-            count = VehicleDefaults.MaxOperatorsCount;
+        if (VehicleDefaults.MinOperatorsCount > count || VehicleDefaults.MaxOperatorsCount < count) {
+            count = Math.round(
+                random({min: VehicleDefaults.MinOperatorsCount, max: VehicleDefaults.MaxOperatorsCount})
+            );
         }
 
         this.setAttributeValue(VehicleAttribute.OperatorsCount, count);
@@ -115,9 +112,7 @@ class Vehicle extends Unit {
      * @returns {number}
      */
     getOperatorsExperience() {
-        return this.getAliveOperators().reduce((experience, operator) => {
-            return experience + operator.getExperience();
-        });
+        return this.getAliveOperators().reduce((experience, operator) => (experience + operator.getExperience()));
     }
 
     /**
@@ -135,9 +130,64 @@ class Vehicle extends Unit {
      * @returns {boolean}
      */
     isRecharging() {
-        return 0 === this.getOperators().reduce((rechargeCount = 0, unit) => {
-            return rechargeCount + (unit.isRecharging() && 1 || 0);
+        return (
+            super.isRecharging() ||
+            this.getAliveOperators().reduce((recharging = false, unit) => (recharging || unit.isRecharging()), 0)
+        )
+    }
+
+    /**
+     * Trigger recharge on all alive operators in vehicle
+     */
+    recharge() {
+        super.recharge();
+
+        this.getAliveOperators().forEach((operator) => (operator.recharge()));
+    }
+
+    /**
+     * Increases experience to each vehicle operator equally divided
+     *
+     * @param {number} amount
+     */
+    increaseExperience(amount) {
+        const perOperatorAmount = amount / (this.getAliveOperators().length || 1);
+
+        this.getAliveOperators().forEach((soldier) => {
+            soldier.increaseExperience(perOperatorAmount);
         });
+    }
+
+    /**
+     * Spawns vehicle and all its operators
+     */
+    spawn() {
+        super.spawn();
+
+        this.getAliveOperators().forEach((operator) => {
+            operator.spawn();
+        });
+    }
+
+    /**
+     * Despawns vehicle and all its operators
+     */
+    despawn() {
+        super.despawn();
+
+        this.getAliveOperators().forEach((operator) => {
+            operator.despawn();
+        });
+    }
+
+    /**
+     * Note: Overriding this method to change default min and max values, while making it still settable
+     *
+     * @param {number} duration
+     * @param {{minDuration?: number, maxDuration?: number}}
+     */
+    setRechargeDuration(duration, {minDuration = VehicleDefaults.MinRechargeDuration, maxDuration = VehicleDefaults.MaxRechargeDuration} = {}) {
+        super.setRechargeDuration(duration, {minDuration, maxDuration});
     }
 
     /**
@@ -160,7 +210,10 @@ class Vehicle extends Unit {
 
         const operatorDamage = (damage - selfDamage) * 0.5;
 
-        operators.splice(random({min: 0, max: operators.length - 1}), 1).shift().receiveDamage(operatorDamage);
+        operators.splice(Math.round(random({
+            min: 0,
+            max: operators.length - 1
+        })), 1).shift().receiveDamage(operatorDamage);
 
         const otherDamage = (damage - selfDamage - operatorDamage);
 
