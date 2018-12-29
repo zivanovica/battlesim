@@ -35,6 +35,19 @@ class Vehicle extends Unit {
         this.setRechargeDuration(rechargeDuration);
         this.setOperatorsCount(operatorsCount);
         this.setAttribute({name: VehicleAttribute.Operators, value: CreateOperators.call(this)});
+
+        this.getOperators().forEach((operator) => {
+            const onDeathHandler = () => {
+                if (0 === this.getAttributeValue(VehicleAttribute.Operators).length) {
+                    // Send maximum damage to vehicle, as it will trigger "onDeath" for it
+                    super.receiveDamage(this.getHealth());
+                }
+
+                operator.removeOnDeathHandler(onDeathHandler);
+            };
+
+           operator.addOnDeathHandler(onDeathHandler);
+        });
     }
 
     /**
@@ -175,7 +188,7 @@ class Vehicle extends Unit {
     despawn() {
         super.despawn();
 
-        this.getAliveOperators().forEach((operator) => {
+        this.getOperators().forEach((operator) => {
             operator.despawn();
         });
     }
@@ -205,9 +218,11 @@ class Vehicle extends Unit {
             return;
         }
 
+        // 30% of total damage is applied to vehicle
         const selfDamage = damage * 0.3;
         super.receiveDamage(selfDamage);
 
+        // 50% of remaining damage (subtracting vehicle damage) is applied to one random operator
         const operatorDamage = (damage - selfDamage) * 0.5;
 
         operators.splice(Math.round(random({
@@ -215,6 +230,10 @@ class Vehicle extends Unit {
             max: operators.length - 1
         })), 1).shift().receiveDamage(operatorDamage);
 
+        /*
+            What is left of damage is applied equally to all other operators.
+            If there are no alive operators then this damage is applied to vehicle itself
+        */
         const otherDamage = (damage - selfDamage - operatorDamage);
 
         if (operators.length) {

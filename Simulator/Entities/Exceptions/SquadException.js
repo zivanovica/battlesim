@@ -5,6 +5,8 @@ const SquadExceptionCode = {
     InvalidAttackTarget: 1,
     InvalidOnAttackHandler: 2,
     InvalidOnDamageHandler: 4,
+    InvalidHandlersType: 8,
+    InvalidOnDeathHandler: 16,
 };
 
 class SquadException extends BaseException {
@@ -14,6 +16,8 @@ class SquadException extends BaseException {
             [SquadExceptionCode.InvalidAttackTarget]: 'Error with attack target',
             [SquadExceptionCode.InvalidOnAttackHandler]: 'Error with onAttack handler',
             [SquadExceptionCode.InvalidOnDamageHandler]: 'Error with onDamage handler',
+            [SquadExceptionCode.InvalidHandlersType]: 'Error with trigger handlers',
+            [SquadExceptionCode.InvalidOnDeathHandler]: 'Error with onDeath handler',
         };
     }
 }

@@ -5,7 +5,8 @@ const {Soldier} = require(resolve('Simulator', 'Entities', 'Units', 'Soldier'));
 const {Vehicle} = require(resolve('Simulator', 'Entities', 'Units', 'Vehicle'));
 const {
     SquadException, SquadExceptionCode: {
-        InvalidAttackStrategy, InvalidAttackTarget, InvalidOnAttackHandler, InvalidOnDamageHandler
+        InvalidAttackStrategy, InvalidAttackTarget, InvalidOnAttackHandler, InvalidOnDamageHandler, InvalidHandlersType,
+        InvalidOnDeathHandler
     }
 } = require(resolve('Simulator', 'Entities', 'Exceptions', 'SquadException'));
 
@@ -52,11 +53,32 @@ const CreateUnits = function () {
 };
 
 /**
+ * Iterate through provided array, and trigger each handler with provided options
+ *
+ * @param {Array} handlers
+ * @param {object} options
+ * @constructor
+ */
+const TriggerHandlers = (handlers, options = {}) => {
+    if (false === handlers instanceof Array) {
+        throw new SquadException(InvalidHandlersType, `Expect Array, got ${typeof handlers}`);
+    }
+
+    handlers.forEach((handler) => {
+        if (typeof handler !== 'function') {
+            throw new SquadException(InvalidHandlersType, `Expect function, got ${typeof handler}`);
+        }
+
+        handler(options)
+    });
+};
+
+/**
 
  * @param {{target: Squad, damage: number, status: number}}
  */
 const TriggerOnAttackHandlers = function ({target, damage, status}) {
-    this[propOnAttackHandlers].forEach((handler) => (handler({target, damage, status})));
+    TriggerHandlers(this[propOnAttackHandlers], {target, damage, status});
 };
 
 /**
@@ -66,23 +88,94 @@ const TriggerOnAttackHandlers = function ({target, damage, status}) {
  * @constructor
  */
 const TriggerOnDamageHandlers = function ({source, damage}) {
-    this[propOnDamageHandlers].forEach((handler) => (handler({source, damage})));
+    TriggerHandlers(this[propOnDamageHandlers], {source, damage});
+};
+
+/**
+ * Execute (trigger) all registered "onDeath" handlers
+ */
+const TriggerOnDeathHandlers = function () {
+    TriggerHandlers(this[propOnDeathHandlers]);
+};
+
+/**
+ *
+ * Adds callback to provided handlers list.
+ *
+ * Note: It will validate "handlers" to check is proper array. it will also validate "callback" to check is it a function
+ * Note: It will throw SquadException with provided "exceptionErrorCode"
+ *
+ * @param {Array} handlers
+ * @param {function} callback
+ * @param {number} exceptionErrorCode
+ * @constructor
+ */
+const AddHandler = function (handlers, callback, exceptionErrorCode) {
+    if (false === handlers instanceof Array) {
+        throw new SquadException(InvalidHandlersType, `Expect Array, got ${typeof handlers}`);
+    }
+
+    if (typeof callback !== 'function') {
+        throw new SquadException(exceptionErrorCode, `Expect function, got ${typeof callback}`);
+    }
+
+    handlers.push(callback);
+};
+
+/**
+ * Removes provided "callback" from provided array of "handlers"
+ *
+ * @param {Array} handlers
+ * @param {function} callback
+ */
+const RemoveHandler = function (handlers, callback) {
+    if (false === handlers instanceof Array) {
+        throw new SquadException(InvalidHandlersType, `Expect Array, got ${typeof handlers}`);
+    }
+
+    const handlerIndex = handlers.indexOf(callback);
+
+    if (-1 !== handlerIndex) {
+        handlers.splice(handlerIndex, 1);
+    }
+};
+
+/**
+ * Iterate through all squad units, and add onDeath handler
+ * It will also trigger Squad's onDeath handlers when all units are dead.
+ */
+const RegisterOnUnitDeathHandlers = function () {
+    this.getUnits().forEach((unit) => {
+        const onUnitDeathHandler = () => {
+            if (0 === this.getAliveUnits().length) {
+                TriggerOnDeathHandlers.call(this);
+            }
+
+            unit.removeOnDeathHandler(onUnitDeathHandler);
+        };
+
+        unit.addOnDeathHandler(onUnitDeathHandler);
+    });
 };
 
 const propOnAttackHandlers = Symbol();
 const propOnDamageHandlers = Symbol();
+const propOnDeathHandlers = Symbol();
 
 class Squad extends Entity {
     constructor({name, attackStrategy = SquadAttackStrategy.Random, unitsCount = SquadDefaults.MinUnitCount} = {}) {
         super({name});
+
+        this[propOnAttackHandlers] = [];
+        this[propOnDamageHandlers] = [];
+        this[propOnDeathHandlers] = [];
 
         this.setUnitsCount(unitsCount);
         this.setAttackStrategy(attackStrategy);
 
         this.setAttribute({name: SquadAttribute.Units, value: CreateUnits.call(this)});
 
-        this[propOnAttackHandlers] = [];
-        this[propOnDamageHandlers] = [];
+        RegisterOnUnitDeathHandlers.call(this);
     }
 
     /**
@@ -91,11 +184,7 @@ class Squad extends Entity {
      * @param {function} callback
      */
     addOnAttackHandler(callback) {
-        if (typeof callback !== 'function') {
-            throw new SquadException(InvalidOnAttackHandler, `Expected function, got ${typeof callback}`);
-        }
-
-        this[propOnAttackHandlers].push(callback);
+        AddHandler.call(this, this[propOnAttackHandlers], callback, InvalidOnAttackHandler);
     }
 
     /**
@@ -104,7 +193,7 @@ class Squad extends Entity {
      * @param {function} callback
      */
     removeOnAttackHandler(callback) {
-        this[propOnAttackHandlers] = this[propOnAttackHandlers].filter((handler) => (handler !== callback));
+        RemoveHandler.call(this, this[propOnAttackHandlers], callback);
     }
 
     /**
@@ -113,11 +202,7 @@ class Squad extends Entity {
      * @param {function} callback
      */
     addOnDamageHandler(callback) {
-        if (typeof callback !== 'function') {
-            throw new SquadException(InvalidOnDamageHandler, `Expected function, got ${typeof callback}`);
-        }
-
-        this[propOnDamageHandlers].push(callback);
+        AddHandler.call(this, this[propOnDamageHandlers], callback, InvalidOnDamageHandler);
     }
 
     /**
@@ -126,7 +211,24 @@ class Squad extends Entity {
      * @param {function} callback
      */
     removeOnDamageHandler(callback) {
-        this[propOnDamageHandlers] = this[propOnDamageHandlers].filter((handler) => (handler !== callback));
+        RemoveHandler.call(this, this[propOnDamageHandlers], callback);
+    }
+
+    /**
+     * Add handler triggered when Squad dies (all members of squad are dead)
+     *
+     * @param {function} callback
+     */
+    addOnDeathHandler(callback) {
+        AddHandler.call(this, this[propOnDeathHandlers], callback, InvalidOnDeathHandler);
+    }
+
+    /**
+     * Remove registered onDeath handler
+     * @param callback
+     */
+    removeOnDeathHandler(callback) {
+        RemoveHandler.call(this, this[propOnDeathHandlers], callback);
     }
 
     /**

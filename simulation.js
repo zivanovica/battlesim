@@ -30,11 +30,12 @@ function sleep(ms) {
 }
 
 let aa = 0;
+const f = ({target, damage, status}) => {
 
-squad1.addOnAttackHandler(({target, damage, status}) => {
+    // squad1.removeOnAttackHandler(f);
 
     if (SquadAttackStatus.Recharging !== status) {
-        squad1.recharge();
+        // squad1.recharge();
     }
 
     switch (status) {
@@ -43,52 +44,44 @@ squad1.addOnAttackHandler(({target, damage, status}) => {
 
             break;
         case SquadAttackStatus.Success:
-            console.log(`${squad1.getName()} landed successful attack on ${target.getName()} making ${damage} damage`);
+            // console.log(`${squad1.getName()} landed successful attack on ${target.getName()} making ${damage} damage`);
 
             squad1.increaseUnitsExperience(0.1);
 
             break;
     }
-});
+};
+
+squad1.addOnAttackHandler(f);
 
 squad2.addOnDamageHandler(({source, damage}) => {
     console.log(`${squad2.getName()} damaged by ${source.getName()} with ${damage} damage`);
 
     squad2.getUnits().forEach((unit) => {
-        console.log(`\t${unit.getName()} HP ${unit.getHealth()}`);
+        // console.log(`\t${unit.getName()} HP ${unit.getHealth()}`);
 
         if (unit.getName().startsWith('Vehicle')) {
             unit.getOperators().forEach((operator) => {
-                console.log(`\t${unit.getName()} ${operator.getName()} HP ${operator.getHealth()}`);
+                // console.log(`\t${unit.getName()} ${operator.getName()} HP ${operator.getHealth()}`);
             });
         }
     });
 });
 
-const a = () => {
-    setImmediate(async () => {
-        await sleep(100);
+squad2.addOnDeathHandler(() => {
+    clearInterval(interval);
 
-        if (squad2.isDead()) {
-            console.log(`${squad1.getName()} destroyed ${squad2.getName()} with ${aa} attacks.`);
+    squad1.despawn();
+    squad2.despawn();
 
-            squad1.despawn();
-            squad2.despawn();
+    console.log(`${squad1.getName()} destroyed ${squad2.getName()} with ${aa} attacks.`);
+});
 
-            return;
-        }
+const interval = setInterval(() => {
 
-        squad1.attack(squad2);
+    squad1.attack(squad2);
 
-        // if (damage) {
-        //     console.log(`\n\t${squad1.getName()} DMG ${damage}\n`);
 
-        aa++;
-        // }
+    aa++;
 
-        a();
-    });
-};
-
-a();
-//
+}, 100);

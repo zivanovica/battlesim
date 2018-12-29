@@ -12,7 +12,7 @@ const UnitAttribute = {
 };
 
 const UnitDefaults = {
-    Health: 100.0,
+    Health: 0.2,
     MinHealth: 0.0,
     MaxHealth: 100.0,
     RechargeDuration: 2000.0,
@@ -33,6 +33,13 @@ const propOnDeathHandlers = Symbol();
  */
 const ExecuteCalculus = function (calculus) {
     return typeof this[calculus] === 'function' && this[calculus]() || 0;
+};
+
+/**
+ * Execute all registered "onDeath" handlers
+ */
+const TriggerOnDeathHandlers = function () {
+    this[propOnDeathHandlers].forEach((handler) => (handler()));
 };
 
 class Unit extends Entity {
@@ -128,7 +135,7 @@ class Unit extends Entity {
      */
     addOnDeathHandler(callback) {
         if (typeof callback !== 'function') {
-            throw new UnitException(InvalidOnDeathHandler, `expected function got ${typeof callback}`);
+            throw new UnitException(InvalidOnDeathHandler, `Expected function, got ${typeof callback}`);
         }
 
         this[propOnDeathHandlers].push(callback);
@@ -137,7 +144,7 @@ class Unit extends Entity {
     /**
      * @param {function} callback
      */
-    removeOnDeathHanlder(callback) {
+    removeOnDeathHandler(callback) {
         this[propOnDeathHandlers] = this[propOnDeathHandlers].filter((handler) => (handler !== callback));
     }
 
@@ -205,11 +212,19 @@ class Unit extends Entity {
      * @param {number} damage
      */
     receiveDamage(damage) {
-        false === this.isDead() && this.setHealth(this.getHealth() - damage);
+        if (this.isDead()) {
+            return;
+        }
+
+        this.setHealth(this.getHealth() - damage);
+
+        if (this.isDead()) {
+            TriggerOnDeathHandlers.call(this);
+        }
     }
 
     /**
-     * Determine is unit available for attacking
+     * Determine is unit available for attacking, based on spawn, recharge and death state
      *
      * @returns {boolean}
      */
