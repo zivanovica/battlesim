@@ -152,7 +152,7 @@ const RegisterOnUnitDeathHandlers = function () {
                 TriggerOnDeathHandlers.call(this);
             }
 
-            // unit.removeOnDeathHandler(onUnitDeathHandler);
+            unit.removeOnDeathHandler(onUnitDeathHandler);
         };
 
         unit.addOnDeathHandler(onUnitDeathHandler);

@@ -39,7 +39,7 @@ const RegisterOperatorOnDeathHandler = function (vehicleReceiveDamage) {
                 vehicleReceiveDamage(this.getHealth());
             }
 
-            // operator.removeOnDeathHandler(onDeathHandler);
+            operator.removeOnDeathHandler(onDeathHandler);
         };
 
         operator.addOnDeathHandler(onDeathHandler);
