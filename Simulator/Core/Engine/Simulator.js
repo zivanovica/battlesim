@@ -86,23 +86,20 @@ class Simulator {
                     army.attack();
                 });
 
-                const armiesAlive = armies.filter((army) => {return 0 !== army.getAliveSquads().length});
+                const armiesAlive = armies.filter((army) => {
+                    return 0 !== army.getAliveSquads().length
+                });
 
                 if (1 < armiesAlive.length) {
                     performAttack();
                 } else {
 
-                    armies.forEach((army) => {
-                        army.despawn();
-                    });
+                    armies.forEach((army) => (army.despawn()));
 
-                    const aliveArmy = armiesAlive.shift();
-
-                    console.log(`${aliveArmy.getName()} won!`);
+                    log(`${armiesAlive.shift().getName()} won!`);
 
                     writeStream.end();
                 }
-
             });
         };
 
