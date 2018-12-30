@@ -101,6 +101,12 @@ class Army extends Entity {
             enemiesSquads = enemiesSquads.concat(enemy.getAliveSquads());
         });
 
+        enemiesSquads.forEach((enemySquad) => {
+            enemySquad.addOnDeathHandler(() => {
+                console.log(`${enemySquad.getName()} died`);
+            });
+        });
+
         this.setAttributeValue(ArmyAttribute.EnemySquads, enemiesSquads);
     }
 
@@ -136,6 +142,8 @@ class Army extends Entity {
                 enemy = this.getWeakestEnemy();
 
                 break;
+
+
             case SquadAttackStrategy.Strong:
                 enemy = this.getStrongestEnemy();
 

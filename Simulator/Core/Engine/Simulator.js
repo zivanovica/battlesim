@@ -27,29 +27,35 @@ class Simulator {
 
         const isSquadRecharging = {};
 
+        const log = (message) => {
+            console.log(message);
+
+            writeStream.write(`${message}\n`);
+        };
+
         const onAttackHandler = function ({target, damage, status}) {
             if (SquadAttackStatus.Recharging !== status) {
                 isSquadRecharging[this.getName()] = false;
 
-                // this.recharge();
+                this.recharge();
             }
 
             switch (status) {
                 case SquadAttackStatus.LowProbability:
-                    writeStream.write(`${this.getName()} missed attack on ${target.getName()}\n`);
+                    log(`${this.getName()} missed attack on ${target.getName()}`);
 
                     break;
                 case SquadAttackStatus.Success:
                     this.increaseUnitsExperience(0.1);
 
-                    writeStream.write(`${this.getName()} landed successful attack on ${target.getName()}, making ${damage} damage\n`);
+                    log(`${this.getName()} landed successful attack on ${target.getName()}, making ${damage} damage`);
 
                     break;
                 case SquadAttackStatus.Recharging:
                     if (false === isSquadRecharging[this.getName()] || typeof isSquadRecharging[this.getName()] === 'undefined') {
                         isSquadRecharging[this.getName()] = true;
 
-                        writeStream.write(`${this.getName()} is recharging.\n`);
+                        log(`${this.getName()} is recharging.`);
                     }
 
 
@@ -60,7 +66,7 @@ class Simulator {
         const onDeathHandler = function () {
             this.despawn();
 
-            writeStream.write(`${this.getName()} lost all of its units.\n`);
+            log(`${this.getName()} lost all of its units`);
         };
 
         armies.forEach((army) => {
@@ -69,9 +75,9 @@ class Simulator {
                 squad.addOnDeathHandler(onDeathHandler.bind(squad))
             });
 
-            army.spawn();
-
             army.setEnemies(armies);
+
+            army.spawn();
         });
 
         const performAttack = () => {
@@ -93,6 +99,8 @@ class Simulator {
                     const aliveArmy = armiesAlive.shift();
 
                     console.log(`${aliveArmy.getName()} won!`);
+
+                    writeStream.end();
                 }
 
             });
