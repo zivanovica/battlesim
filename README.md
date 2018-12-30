@@ -11,4 +11,8 @@
     
 Monitor file called ``battle_log.txt``, it contains outcome of provided scenario.
 
-Armies, their squads and units are configurable in file ``scenarios/default.json`` 
+Armies, their squads and units are configurable in file ``scenarios/default.json``
+
+## NOTES
+
+There are currently no unit tests. 
