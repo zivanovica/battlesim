@@ -1,0 +1,59 @@
+{
+  "units": {
+    "Normal Soldier": {"type": "Soldier", "experience": 30.0, "health": 70.0, "recharge": 1000},
+    "Weak Soldier": {"type": "Soldier", "experience": 30.0, "health": 25.0, "recharge": 1000},
+    "Slow Soldier": {"type": "Soldier", "experience": 30.0, "health": 70.0, "recharge": 2000},
+    "Fast Soldier": {"type": "Soldier", "experience": 30.0, "health": 70.0, "recharge": 500},
+    "Advanced Soldier": {"type": "Soldier", "experience": 50, "health": 100.0, "recharge": 200},
+    "Weak Vehicle": {"type": "Vehicle", "operators": ["Normal Soldier", "Weak Soldier"], "health": 25.5, "recharge": 2000},
+    "Normal Vehicle": {"type": "Vehicle", "operators": ["Normal Soldier", "Normal Soldier"], "health": 75.0},
+    "Advanced Vehicle": {"type": "Vehicle", "operators": ["Normal Soldier", "Advanced Soldier", "Advanced Soldier"], "health": 100.0}
+  },
+  "armies": {
+    "Red Army": {
+      "Weak Comrade": {
+        "attackStrategy": "weak", "units": ["Weak Soldier", "Weak Soldier", "Weak Soldier", "Weak Soldier", "Weak Vehicle"]
+      },
+      "Normal Comrade": {
+        "attackStrategy": "weak", "units": ["Normal Soldier", "Normal Soldier", "Normal Soldier", "Normal Soldier", "Weak Vehicle"]
+      },
+      "Strong Comrade": {
+        "attackStrategy": "random", "units": ["Normal Soldier", "Normal Soldier", "Advanced Soldier", "Advanced Soldier", "Normal Vehicle"]
+      },
+      "Elite Comrade": {
+        "attackStrategy": "strong", "units": ["Advanced Soldier", "Advanced Soldier", "Advanced Soldier", "Normal Vehicle", "Advanced Vehicle"]
+      }
+    },
+    "Blue Army": {
+      "Weak Marine": {
+        "attackStrategy": "weak", "units": ["Weak Soldier", "Weak Soldier", "Normal Soldier", "Weak Vehicle", "Weak Vehicle"]
+      },
+      "Normal Marine": {
+        "attackStrategy": "weak", "units": ["Normal Soldier", "Normal Soldier", "Normal Soldier", "Normal Soldier", "Weak Vehicle"]
+      },
+      "Strong Marine": {
+        "attackStrategy": "random", "units": ["Normal Soldier", "Normal Soldier", "Advanced Soldier", "Advanced Soldier", "Normal Vehicle"]
+      },
+      "Elite Marine": {
+        "attackStrategy": "strong", "units": ["Advanced Soldier", "Advanced Soldier", "Advanced Soldier", "Normal Vehicle", "Advanced Vehicle"]
+      }
+    },
+    "Unbeatable Army": {
+      "Elite #1": {
+        "attackStrategy": "strong", "units": ["Advanced Soldier", "Advanced Soldier", "Advanced Soldier", "Advanced Vehicle", "Advanced Vehicle"]
+      },
+      "Elite #2": {
+        "attackStrategy": "strong", "units": ["Advanced Soldier", "Advanced Soldier", "Advanced Soldier", "Advanced Vehicle", "Advanced Vehicle"]
+      },
+      "Elite #3": {
+        "attackStrategy": "strong", "units": ["Advanced Soldier", "Advanced Soldier", "Advanced Soldier", "Advanced Vehicle", "Advanced Vehicle"]
+      },
+      "Elite #4": {
+        "attackStrategy": "strong", "units": ["Advanced Soldier", "Advanced Soldier", "Advanced Soldier", "Advanced Vehicle", "Advanced Vehicle"]
+      },
+      "Elite #5": {
+        "attackStrategy": "strong", "units": ["Advanced Soldier", "Advanced Soldier", "Advanced Soldier", "Advanced Vehicle", "Advanced Vehicle"]
+      }
+    }
+  }
+}

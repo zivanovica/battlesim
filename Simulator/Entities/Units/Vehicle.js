@@ -7,7 +7,8 @@ const VehicleDefaults = {
     MinOperatorsCount: 1,
     MaxOperatorsCount: 3,
     MinRechargeDuration: 1000,
-    MaxRechargeDuration: 2000
+    MaxRechargeDuration: 2000,
+    Health: 100.0
 };
 
 const VehicleAttribute = {
@@ -25,29 +26,46 @@ const CreateOperators = function () {
 };
 
 /**
+ * Register onDeath handlers for all vehicle operators.
+ *
+ * In case that there are no alive operators, max damage will be applied to vehicle which will trigger Vehicle's
+ * onDeath handlers
+ */
+const RegisterOperatorOnDeathHandler = function (vehicleReceiveDamage) {
+    this.getOperators().forEach((operator) => {
+        const onDeathHandler = () => {
+            if (0 === this.getAttributeValue(VehicleAttribute.Operators).length) {
+                // Send maximum damage to vehicle, as it will trigger "onDeath" for it
+                vehicleReceiveDamage(this.getHealth());
+            }
+
+            // operator.removeOnDeathHandler(onDeathHandler);
+        };
+
+        operator.addOnDeathHandler(onDeathHandler);
+    });
+};
+
+/**
  * Vehicle unit is treated same as normal unit, with custom attack probability and damage calculations.
  * Vehicle unit also ensures that it contains
  */
 class Vehicle extends Unit {
-    constructor({name, rechargeDuration = VehicleDefaults.MaxRechargeDuration, operatorsCount = -1}) {
-        super({name});
+    constructor({name, health = VehicleDefaults.Health, rechargeDuration = VehicleDefaults.MaxRechargeDuration, operatorsCount = null}) {
+        super({
+            name,
+            health,
+            rechargeDuration,
+            minRechargeDuration: VehicleDefaults.MinRechargeDuration,
+            maxRechargeDuration: VehicleDefaults.MaxRechargeDuration
+        });
 
         this.setRechargeDuration(rechargeDuration);
-        this.setOperatorsCount(operatorsCount);
-        this.setAttribute({name: VehicleAttribute.Operators, value: CreateOperators.call(this)});
 
-        this.getOperators().forEach((operator) => {
-            const onDeathHandler = () => {
-                if (0 === this.getAttributeValue(VehicleAttribute.Operators).length) {
-                    // Send maximum damage to vehicle, as it will trigger "onDeath" for it
-                    super.receiveDamage(this.getHealth());
-                }
-
-                operator.removeOnDeathHandler(onDeathHandler);
-            };
-
-           operator.addOnDeathHandler(onDeathHandler);
-        });
+        if (null !== operatorsCount) {
+            this.setOperatorsCount(operatorsCount);
+            this.setOperators(CreateOperators.call(this));
+        }
     }
 
     /**
@@ -75,12 +93,44 @@ class Vehicle extends Unit {
      */
     setOperatorsCount(count) {
         if (VehicleDefaults.MinOperatorsCount > count || VehicleDefaults.MaxOperatorsCount < count) {
-            count = Math.round(
-                random({min: VehicleDefaults.MinOperatorsCount, max: VehicleDefaults.MaxOperatorsCount})
-            );
+            // count = Math.round(
+            //     random({min: VehicleDefaults.MinOperatorsCount, max: VehicleDefaults.MaxOperatorsCount})
+            // );
+            // TODO: Throw proper error
+            throw new Error('Out-of-range');
         }
 
         this.setAttributeValue(VehicleAttribute.OperatorsCount, count);
+    }
+
+    /**
+     *
+     * TODO: Investigate possible bug with hanging callbacks
+     *
+     * @param operators
+     */
+    setOperators(operators) {
+        if (false === operators instanceof Array) {
+            // TODO: Throw proper error
+            throw new Error('Invalid type')
+        }
+
+        // Despawn already loaded operators.
+        this.getOperators().forEach((operator) => (operator.despawn()));
+
+        // Update operators count to match current number
+        this.setOperatorsCount(operators.length);
+
+        this.setAttributeValue(VehicleAttribute.Operators, operators.map((operator) => {
+            if (false === operator instanceof Soldier) {
+                // TODO: Throw proper error
+                throw new Error('Invalid type');
+            }
+
+            return operator;
+        }));
+
+        RegisterOperatorOnDeathHandler.call(this, super.receiveDamage);
     }
 
     /**
@@ -125,7 +175,9 @@ class Vehicle extends Unit {
      * @returns {number}
      */
     getOperatorsExperience() {
-        return this.getAliveOperators().reduce((experience, operator) => (experience + operator.getExperience()));
+        return this.getAliveOperators().map((operator) => {
+            return operator.getExperience();
+        }).reduce((totalXP = 0, operatorXP) => (totalXP + operatorXP), 0);
     }
 
     /**
@@ -145,17 +197,29 @@ class Vehicle extends Unit {
     isRecharging() {
         return (
             super.isRecharging() ||
-            this.getAliveOperators().reduce((recharging = false, unit) => (recharging || unit.isRecharging()), 0)
-        )
+            0 !== this.getAliveOperators().map((operator) => {
+                return operator.isRecharging() ? 1 : 0
+            }).reduce((totalRecharging = 0, unitRecharging) => (totalRecharging + unitRecharging), 0)
+        );
     }
 
     /**
      * Trigger recharge on all alive operators in vehicle
+     *
+     * Note: If total duration of all operators that are recharging is less than
      */
     recharge() {
-        super.recharge();
+        const rechargeDuration = this.getAliveOperators().map((operator) => {
+            operator.recharge();
 
-        this.getAliveOperators().forEach((operator) => (operator.recharge()));
+            return operator.getRechargeDuration();
+        }).reduce((totalRecharge = 0, operatorRecharge) => {
+            return totalRecharge + operatorRecharge;
+        }, 0);
+
+        if (VehicleDefaults.MinOperatorsCount > rechargeDuration) {
+            super.recharge();
+        }
     }
 
     /**
@@ -168,6 +232,15 @@ class Vehicle extends Unit {
 
         this.getAliveOperators().forEach((soldier) => {
             soldier.increaseExperience(perOperatorAmount);
+        });
+    }
+
+    /**
+     *
+     */
+    getExperience() {
+        return this.getAliveOperators().map((unit) => (unit.getExperience())).reduce((totalXP = 0, unitXP) => {
+            return totalXP + unitXP;
         });
     }
 
@@ -248,4 +321,4 @@ class Vehicle extends Unit {
     }
 }
 
-module.exports = {Vehicle, VehicleAttribute};
+module.exports = {Vehicle, VehicleDefaults, VehicleAttribute};

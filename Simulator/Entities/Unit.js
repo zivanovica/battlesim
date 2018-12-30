@@ -44,7 +44,7 @@ const TriggerOnDeathHandlers = function () {
 
 class Unit extends Entity {
     constructor(
-        {name, health = UnitDefaults.Health, rechargeDuration, minRechargeSpeed: minRechargeDuration = UnitDefaults.MinRechargeDuration, maxRechargeSpeed: maxRechargeDuration = UnitDefaults.MaxRechargeDuration} = {}
+        {name, health = UnitDefaults.Health, rechargeDuration = null, minRechargeDuration = UnitDefaults.MinRechargeDuration, maxRechargeDuration = UnitDefaults.MaxRechargeDuration} = {}
     ) {
         super({name});
 
@@ -59,6 +59,8 @@ class Unit extends Entity {
         const isRechargingAttribute = this.getAttribute(UnitAttribute.isRecharging);
 
         isRechargingAttribute.shouldUpdate = () => {
+            // In case that isRecharge attribute true
+            // This will tell script to update it to false
             return isRechargingAttribute.getValue();
         };
 

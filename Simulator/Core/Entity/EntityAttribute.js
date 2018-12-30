@@ -64,14 +64,14 @@ const SetUpdateHandler = function () {
 /**
  * Executes all registered update start handlers
  */
-const TriggerStartHandlers = function () {
+const TriggerStartHandlers = function() {
     this[propStartHandlers].forEach((handler) => (handler()));
 };
 
 /**
  * Executes all registered update stop handlers
  */
-const TriggerStopHandlers = function () {
+const TriggerStopHandlers = function() {
     this[propStopHandlers].forEach((handler) => (handler()));
 };
 
@@ -162,7 +162,7 @@ class EntityAttribute {
      *
      * @param {function} callback
      */
-    addStopHandler(callback) {
+    registerStopHandler(callback) {
         if (typeof callback !== 'function') {
             throw new EntityAttributeException(InvalidStopHandler, `Must be function, got ${typeof callback}`);
         }

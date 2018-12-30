@@ -13,8 +13,8 @@ const SoldierAttribute = {
 
 class Soldier extends Unit {
 
-    constructor({name, health, rechargeDuration, experience = SoldierDefaults.MinExperience} = {}) {
-        super({name, health, rechargeDuration});
+    constructor({name, health, recharge, experience = SoldierDefaults.MinExperience} = {}) {
+        super({name, health, rechargeDuration: recharge});
 
         this.setExperience(experience);
     }

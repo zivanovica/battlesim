@@ -1,6 +1,7 @@
 const {resolve} = require('path');
 const {MathEx: {random, average}} = require(resolve('Simulator', 'Utils', 'MathEx'));
 const {Entity} = require(resolve('Simulator', 'Core', 'Entity', 'Entity'));
+const {Unit} = require(resolve('Simulator', 'Entities', 'Unit'));
 const {Soldier} = require(resolve('Simulator', 'Entities', 'Units', 'Soldier'));
 const {Vehicle} = require(resolve('Simulator', 'Entities', 'Units', 'Vehicle'));
 const {
@@ -151,7 +152,7 @@ const RegisterOnUnitDeathHandlers = function () {
                 TriggerOnDeathHandlers.call(this);
             }
 
-            unit.removeOnDeathHandler(onUnitDeathHandler);
+            // unit.removeOnDeathHandler(onUnitDeathHandler);
         };
 
         unit.addOnDeathHandler(onUnitDeathHandler);
@@ -163,17 +164,50 @@ const propOnDamageHandlers = Symbol();
 const propOnDeathHandlers = Symbol();
 
 class Squad extends Entity {
-    constructor({name, attackStrategy = SquadAttackStrategy.Random, unitsCount = SquadDefaults.MinUnitCount} = {}) {
+    constructor({name, attackStrategy = SquadAttackStrategy.Random, unitsCount = null} = {}) {
         super({name});
 
         this[propOnAttackHandlers] = [];
         this[propOnDamageHandlers] = [];
         this[propOnDeathHandlers] = [];
 
-        this.setUnitsCount(unitsCount);
-        this.setAttackStrategy(attackStrategy);
+        if (unitsCount) {
+            this.setUnitsCount(unitsCount);
+            this.setUnits(CreateUnits.call(this));
+        }
 
-        this.setAttribute({name: SquadAttribute.Units, value: CreateUnits.call(this)});
+        this.setAttackStrategy(attackStrategy);
+    }
+
+    /**
+     *
+     * @param {Unit[]} units
+     */
+    setUnits(units) {
+        if (false === units instanceof Array) {
+            // TODO: Throw proper error
+            throw new Error('Invalid type');
+        }
+
+        if (SquadDefaults.MinUnitCount > units.length || SquadDefaults.MaxUnitCount < units.length) {
+            // TODO: Throw proper error
+            throw new Error('Out-of-range');
+        }
+
+        this.getUnits().forEach((unit) => {
+            unit.despawn()
+        });
+
+        this.setAttributeValue(SquadAttribute.Units, units.map((unit) => {
+            if (false === unit instanceof Unit) {
+                // TODO: throw proper exception
+                throw new Error('Invalid type');
+            }
+
+            return unit;
+        }));
+
+        this.setUnitsCount(units.length);
 
         RegisterOnUnitDeathHandlers.call(this);
     }
@@ -257,16 +291,16 @@ class Squad extends Entity {
      * @returns {[]}
      */
     getUnits() {
-        return this.getAttributeValue(SquadAttribute.Units) || null;
+        return this.getAttributeValue(SquadAttribute.Units) || [];
     }
 
     /**
      * Retrieve list of all units that are alive
      *
-     * @returns {*[]}
+     * @returns {Unit[]}
      */
     getAliveUnits() {
-        return this.getUnits().filter((unit) => (false === unit.isDead()));
+        return this.getUnits().filter((unit) => {return false === unit.isDead();});
     }
 
     /**
@@ -274,7 +308,7 @@ class Squad extends Entity {
      */
     setAttackStrategy(strategy = SquadAttackStrategy.Random) {
         if (-1 === ValidSquadAttackStrategies.indexOf(strategy)) {
-            throw new SquadException(InvalidAttackStrategy, strategy);
+            throw new SquadException(InvalidAttackStrategy, `invalid attack strategy ${strategy}`);
         }
 
         this.setAttributeValue(SquadAttribute.AttackStrategy, strategy);
@@ -343,14 +377,14 @@ class Squad extends Entity {
             throw new SquadException(InvalidAttackTarget, 'target must be instance of Squad');
         }
 
-        if (target.getAttackProbability() > this.getAttackProbability()) {
-            TriggerOnAttackHandlers.call(this, {target, damage: 0, status: SquadAttackStatus.LowProbability});
+        if (this.isRecharging()) {
+            TriggerOnAttackHandlers.call(this, {target, damage: -1, status: SquadAttackStatus.Recharging});
 
             return false;
         }
 
-        if (this.isRecharging()) {
-            TriggerOnAttackHandlers.call(this, {target, damage: 0, status: SquadAttackStatus.Recharging});
+        if (target.getAttackProbability() > this.getAttackProbability()) {
+            TriggerOnAttackHandlers.call(this, {target, damage: -2, status: SquadAttackStatus.LowProbability});
 
             return false;
         }
@@ -383,10 +417,10 @@ class Squad extends Entity {
     /**
      * Retrieve Squad recharge state based on squad units recharge state.
      *
-     * @return {number}
+     * @return {boolean}
      */
     isRecharging() {
-        return this.getAliveUnits().reduce((recharge = false, unit) => (unit.isRecharging()));
+        return 0 !== this.getAliveUnits().filter((unit) => (unit.isRecharging())).length;
     }
 
     /**
@@ -395,7 +429,38 @@ class Squad extends Entity {
      * @return {number}
      */
     getDamage() {
-        return Number(this.getAliveUnits().reduce((damage, unit) => (damage + unit.getDamage()), 0)) || 0;
+        return this.getAliveUnits().map((unit) => {
+            return unit.getDamage();
+        }).reduce((totalDamage = 0, unitDamage) => {return totalDamage + unitDamage}, 0);
+    }
+
+    /**
+     * Retrieve total squad health (summary of all alive units health)
+     *
+     * @return {number}
+     */
+    getHealth() {
+        return this.getAliveUnits().map((unit) => {
+            return unit.getHealth();
+        }).reduce((totalHealth = 0, unitHealth) => (totalHealth + unitHealth), 0);
+    }
+
+    /**
+     * Retrieve total squad experience (summary of all alive units experience)
+     */
+    getExperience() {
+        return this.getAliveUnits().map((unit) => {
+            return unit.getExperience();
+        }).reduce((totalXP = 0, unitXP) => (totalXP + unitXP), 0);
+    }
+
+    /**
+     * Get current squad score
+     *
+     * @return {number}
+     */
+    getScore() {
+        return this.getHealth() + this.getExperience() + this.getDamage() + this.getAliveUnits().length;
     }
 
     /**
